@@ -153,7 +153,7 @@ const Index = () => {
       <AuthDialog 
         open={isAuthDialogOpen} 
         onOpenChange={setIsAuthDialogOpen}
-        onLoginSuccess={() => setIsLoggedIn(true)}
+        onAuthSuccess={() => setIsLoggedIn(true)}
       />
     </div>
   );

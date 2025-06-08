@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { Upload } from "lucide-react";
 
@@ -12,17 +13,25 @@ interface AddProductDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const categories = [
+  { value: "smartphones", label: "Smartphones" },
+  { value: "laptops", label: "Laptops" },
+  { value: "tablets", label: "Tablets" },
+  { value: "tvs", label: "TVs & Displays" },
+  { value: "accessories", label: "Accessories" }
+];
+
 export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
+    category: "",
     image: null as File | null
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Will integrate with Supabase to save product
     console.log("Adding product:", formData);
     onOpenChange(false);
     // Reset form
@@ -30,6 +39,7 @@ export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) 
       name: "",
       description: "",
       price: "",
+      category: "",
       image: null
     });
   };
@@ -43,21 +53,53 @@ export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
+          <DialogTitle className="text-xl">Add New Product</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Product Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., iPhone 14 Pro"
-              required
-            />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Label htmlFor="name">Product Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., iPhone 14 Pro"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="price">Price ($)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <div>
@@ -66,28 +108,15 @@ export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) 
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe your product..."
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="price">Price ($)</Label>
-            <Input
-              id="price"
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
+              placeholder="Describe your product condition, features, etc..."
+              rows={4}
               required
             />
           </div>
           
           <div>
             <Label htmlFor="image">Product Image</Label>
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
               <input
                 id="image"
                 type="file"
@@ -96,15 +125,18 @@ export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) 
                 className="hidden"
               />
               <Label htmlFor="image" className="cursor-pointer">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
+                <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-1">
                   {formData.image ? formData.image.name : "Click to upload image"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  PNG, JPG, GIF up to 10MB
                 </p>
               </Label>
             </div>
           </div>
           
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

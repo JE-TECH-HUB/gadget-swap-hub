@@ -5,21 +5,34 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, User, LogIn, LogOut } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { AddProductDialog } from "@/components/AddProductDialog";
+import { AuthDialog } from "@/components/AuthDialog";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  status: "available" | "sold" | "swapped";
+  owner_id: string;
+  created_at: string;
+}
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false); // This will be managed by Supabase auth
 
   // Mock data for demonstration - will be replaced with Supabase data
-  const mockProducts = [
+  const mockProducts: Product[] = [
     {
       id: "1",
       name: "iPhone 14 Pro",
       description: "Excellent condition, barely used",
       price: 999,
       image_url: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400",
-      status: "available",
+      status: "available" as const,
       owner_id: "user1",
       created_at: new Date().toISOString()
     },
@@ -29,8 +42,18 @@ const Index = () => {
       description: "Perfect for students and professionals",
       price: 1299,
       image_url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400",
-      status: "available",
+      status: "available" as const,
       owner_id: "user2",
+      created_at: new Date().toISOString()
+    },
+    {
+      id: "3",
+      name: "Samsung Galaxy Watch",
+      description: "Smart watch with fitness tracking",
+      price: 299,
+      image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
+      status: "sold" as const,
+      owner_id: "user3",
       created_at: new Date().toISOString()
     }
   ];
@@ -65,7 +88,7 @@ const Index = () => {
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsLoggedIn(true)}>
+                <Button onClick={() => setIsAuthDialogOpen(true)}>
                   <LogIn className="h-4 w-4 mr-2" />
                   Login
                 </Button>
@@ -124,6 +147,13 @@ const Index = () => {
       <AddProductDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
+      />
+
+      {/* Auth Dialog */}
+      <AuthDialog 
+        open={isAuthDialogOpen} 
+        onOpenChange={setIsAuthDialogOpen}
+        onLoginSuccess={() => setIsLoggedIn(true)}
       />
     </div>
   );

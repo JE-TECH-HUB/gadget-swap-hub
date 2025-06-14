@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,8 @@ import { AuthDialog } from "@/components/AuthDialog";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { Footer } from "@/components/Footer";
 import { Link } from "react-router-dom";
+import { useSupabase } from "@/hooks/useSupabase";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -28,8 +29,17 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const { user, signOut, loading } = useSupabase();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error("Error signing out");
+    } else {
+      toast.success("Signed out successfully");
+    }
+  };
 
   // Nigerian-focused mock data with local context
   const mockProducts: Product[] = [
@@ -186,6 +196,17 @@ const Index = () => {
     return matchesSearch && matchesCategory;
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading Je-Gadgets...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -200,12 +221,10 @@ const Index = () => {
                   <span>Nigeria's #1 Electronics Marketplace</span>
                 </div>
               </div>
-              
-              {/* Mobile menu toggle would go here if needed */}
             </div>
             
             <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:gap-3">
-              {isLoggedIn ? (
+              {user ? (
                 <>
                   <Link to="/cart">
                     <Button variant="outline" size="sm" className="text-xs lg:text-sm">
@@ -224,20 +243,29 @@ const Index = () => {
                     <span className="hidden sm:inline">Sell Item</span>
                     <span className="sm:hidden">Sell</span>
                   </Button>
-                  <Button variant="outline" size="sm" className="text-xs lg:text-sm">
-                    <User className="h-4 w-4 mr-1 lg:mr-2" />
-                    <span className="hidden sm:inline">My Items</span>
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setIsLoggedIn(false)} className="text-xs lg:text-sm">
+                  <Link to="/my-products">
+                    <Button variant="outline" size="sm" className="text-xs lg:text-sm">
+                      <User className="h-4 w-4 mr-1 lg:mr-2" />
+                      <span className="hidden sm:inline">My Items</span>
+                    </Button>
+                  </Link>
+                  <Button variant="outline" size="sm" onClick={handleSignOut} className="text-xs lg:text-sm">
                     <LogOut className="h-4 w-4 mr-1 lg:mr-2" />
                     <span className="hidden sm:inline">Logout</span>
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsAuthDialogOpen(true)} size="sm" className="text-xs lg:text-sm">
-                  <LogIn className="h-4 w-4 mr-1 lg:mr-2" />
-                  Login
-                </Button>
+                <>
+                  <Link to="/auth">
+                    <Button size="sm" className="text-xs lg:text-sm">
+                      <LogIn className="h-4 w-4 mr-1 lg:mr-2" />
+                      Login
+                    </Button>
+                  </Link>
+                  <Button onClick={() => setIsAuthDialogOpen(true)} variant="outline" size="sm" className="text-xs lg:text-sm">
+                    Quick Login
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -312,7 +340,7 @@ const Index = () => {
             <ProductCard 
               key={product.id} 
               product={product} 
-              isLoggedIn={isLoggedIn}
+              isLoggedIn={!!user}
             />
           ))}
         </div>
@@ -348,7 +376,7 @@ const Index = () => {
       <AuthDialog 
         open={isAuthDialogOpen} 
         onOpenChange={setIsAuthDialogOpen}
-        onAuthSuccess={() => setIsLoggedIn(true)}
+        onAuthSuccess={() => {}}
       />
     </div>
   );

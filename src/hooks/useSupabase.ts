@@ -1,16 +1,17 @@
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
 
-// This hook will be implemented once Supabase is connected
-// It will handle authentication state and provide methods for:
-// - Sign up, sign in, sign out
-// - CRUD operations for products
-// - CRUD operations for swap requests
-// - File uploads to storage
-
-interface User {
+interface Profile {
   id: string;
   email: string;
+  full_name: string;
+  avatar_url?: string;
+  phone?: string;
+  location?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Product {
@@ -35,85 +36,243 @@ interface SwapRequest {
 
 export const useSupabase = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock implementation - will be replaced with actual Supabase integration
   useEffect(() => {
-    // Simulate checking for existing session
-    setLoading(false);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    // Will implement Supabase auth.signUp
-    console.log('Sign up:', email);
-    return { error: null };
+  const signUp = async (email: string, password: string, fullName?: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: {
+          full_name: fullName || email
+        }
+      }
+    });
+    return { error };
   };
 
   const signIn = async (email: string, password: string) => {
-    // Will implement Supabase auth.signInWithPassword
-    console.log('Sign in:', email);
-    setUser({ id: 'user-id', email });
-    return { error: null };
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    return { error };
   };
 
   const signOut = async () => {
-    // Will implement Supabase auth.signOut
-    setUser(null);
-    return { error: null };
+    const { error } = await supabase.auth.signOut();
+    return { error };
+  };
+
+  const getProfile = async (): Promise<Profile | null> => {
+    if (!user) return null;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+    
+    return data;
+  };
+
+  const updateProfile = async (updates: Partial<Profile>): Promise<Profile | null> => {
+    if (!user) return null;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating profile:', error);
+      return null;
+    }
+    
+    return data;
   };
 
   const getProducts = async (): Promise<Product[]> => {
-    // Will implement Supabase query to products table
-    return [];
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching products:', error);
+      return [];
+    }
+    
+    return data || [];
   };
 
   const addProduct = async (product: Omit<Product, 'id' | 'created_at' | 'owner_id'>): Promise<Product | null> => {
-    // Will implement Supabase insert to products table
-    console.log('Adding product:', product);
-    return null;
+    if (!user) return null;
+    
+    const { data, error } = await supabase
+      .from('products')
+      .insert({ ...product, owner_id: user.id })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error adding product:', error);
+      return null;
+    }
+    
+    return data;
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product | null> => {
-    // Will implement Supabase update to products table
-    console.log('Updating product:', id, updates);
-    return null;
+    const { data, error } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', id)
+      .eq('owner_id', user?.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating product:', error);
+      return null;
+    }
+    
+    return data;
   };
 
   const deleteProduct = async (id: string): Promise<boolean> => {
-    // Will implement Supabase delete from products table
-    console.log('Deleting product:', id);
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .eq('owner_id', user?.id);
+    
+    if (error) {
+      console.error('Error deleting product:', error);
+      return false;
+    }
+    
     return true;
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    // Will implement Supabase storage upload
-    console.log('Uploading image:', file.name);
-    return 'image-url';
+    if (!user) return null;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, file);
+    
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      return null;
+    }
+    
+    const { data } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
+    
+    return data.publicUrl;
   };
 
   const sendSwapRequest = async (productId: string, message: string): Promise<SwapRequest | null> => {
-    // Will implement Supabase insert to swap_requests table
-    console.log('Sending swap request:', productId, message);
-    return null;
+    if (!user) return null;
+    
+    const { data, error } = await supabase
+      .from('swap_requests')
+      .insert({
+        requester_id: user.id,
+        product_id: productId,
+        message,
+        status: 'pending'
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error sending swap request:', error);
+      return null;
+    }
+    
+    return data;
   };
 
   const getSwapRequests = async (): Promise<{ received: SwapRequest[], sent: SwapRequest[] }> => {
-    // Will implement Supabase queries to swap_requests table
-    return { received: [], sent: [] };
+    if (!user) return { received: [], sent: [] };
+    
+    const [receivedResponse, sentResponse] = await Promise.all([
+      supabase
+        .from('swap_requests')
+        .select('*, products!inner(*)')
+        .eq('products.owner_id', user.id),
+      supabase
+        .from('swap_requests')
+        .select('*, products(*)')
+        .eq('requester_id', user.id)
+    ]);
+    
+    return {
+      received: receivedResponse.data || [],
+      sent: sentResponse.data || []
+    };
   };
 
   const updateSwapRequest = async (id: string, status: "accepted" | "rejected"): Promise<SwapRequest | null> => {
-    // Will implement Supabase update to swap_requests table
-    console.log('Updating swap request:', id, status);
-    return null;
+    const { data, error } = await supabase
+      .from('swap_requests')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating swap request:', error);
+      return null;
+    }
+    
+    return data;
   };
 
   return {
     user,
+    session,
     loading,
     signUp,
     signIn,
     signOut,
+    getProfile,
+    updateProfile,
     getProducts,
     addProduct,
     updateProduct,

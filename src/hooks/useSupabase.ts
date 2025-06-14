@@ -135,7 +135,10 @@ export const useSupabase = () => {
       return [];
     }
     
-    return data || [];
+    return (data || []).map(product => ({
+      ...product,
+      status: product.status as "available" | "sold" | "swapped"
+    }));
   };
 
   const addProduct = async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'owner_id'>): Promise<Product | null> => {
@@ -152,7 +155,10 @@ export const useSupabase = () => {
       return null;
     }
     
-    return data;
+    return {
+      ...data,
+      status: data.status as "available" | "sold" | "swapped"
+    };
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product | null> => {
@@ -171,7 +177,10 @@ export const useSupabase = () => {
       return null;
     }
     
-    return data;
+    return {
+      ...data,
+      status: data.status as "available" | "sold" | "swapped"
+    };
   };
 
   const deleteProduct = async (id: string): Promise<boolean> => {
@@ -232,7 +241,10 @@ export const useSupabase = () => {
       return null;
     }
     
-    return data;
+    return {
+      ...data,
+      status: data.status as "pending" | "accepted" | "rejected"
+    };
   };
 
   const getSwapRequests = async (): Promise<{ received: any[], sent: any[] }> => {
@@ -266,8 +278,14 @@ export const useSupabase = () => {
     ]);
     
     return {
-      received: receivedResponse.data || [],
-      sent: sentResponse.data || []
+      received: (receivedResponse.data || []).map(request => ({
+        ...request,
+        status: request.status as "pending" | "accepted" | "rejected"
+      })),
+      sent: (sentResponse.data || []).map(request => ({
+        ...request,
+        status: request.status as "pending" | "accepted" | "rejected"
+      }))
     };
   };
 
@@ -284,7 +302,10 @@ export const useSupabase = () => {
       return null;
     }
     
-    return data;
+    return {
+      ...data,
+      status: data.status as "pending" | "accepted" | "rejected"
+    };
   };
 
   return {

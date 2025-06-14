@@ -6,6 +6,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Edit, Trash2, MessageSquare, ShoppingCart, Clock, MapPin } from "lucide-react";
 import { useState } from "react";
 import { SwapRequestDialog } from "./SwapRequestDialog";
+import { Link } from "react-router-dom";
 
 interface Product {
   id: string;
@@ -76,13 +77,15 @@ export const ProductCard = ({ product, isLoggedIn, currentUserId = "current-user
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
         <CardHeader className="p-0 relative">
-          <AspectRatio ratio={4/3}>
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          </AspectRatio>
+          <Link to={`/product/${product.id}`}>
+            <AspectRatio ratio={4/3}>
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+              />
+            </AspectRatio>
+          </Link>
           <div className="absolute top-3 left-3">
             <Badge className={categoryColors[product.category] || "bg-gray-100 text-gray-800"}>
               {product.category}
@@ -96,7 +99,11 @@ export const ProductCard = ({ product, isLoggedIn, currentUserId = "current-user
         </CardHeader>
         
         <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-1">{product.name}</h3>
+          <Link to={`/product/${product.id}`}>
+            <h3 className="font-semibold text-lg mb-2 line-clamp-1 hover:text-green-600 cursor-pointer">
+              {product.name}
+            </h3>
+          </Link>
           <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
             {product.description}
           </p>

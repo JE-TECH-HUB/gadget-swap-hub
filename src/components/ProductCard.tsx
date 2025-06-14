@@ -3,7 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Edit, Trash2, MessageSquare, ShoppingCart, Clock } from "lucide-react";
+import { Edit, Trash2, MessageSquare, ShoppingCart, Clock, MapPin } from "lucide-react";
 import { useState } from "react";
 import { SwapRequestDialog } from "./SwapRequestDialog";
 
@@ -17,6 +17,7 @@ interface Product {
   owner_id: string;
   created_at: string;
   category: string;
+  location?: string;
 }
 
 interface ProductCardProps {
@@ -62,6 +63,15 @@ export const ProductCard = ({ product, isLoggedIn, currentUserId = "current-user
     }
   };
 
+  // Format price in Nigerian Naira
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
   return (
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
@@ -90,13 +100,19 @@ export const ProductCard = ({ product, isLoggedIn, currentUserId = "current-user
           <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
             {product.description}
           </p>
-          <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-primary">${product.price}</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-2xl font-bold text-green-600">{formatPrice(product.price)}</p>
             <div className="flex items-center text-xs text-muted-foreground">
               <Clock className="h-3 w-3 mr-1" />
               <span>2 days ago</span>
             </div>
           </div>
+          {product.location && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3 mr-1" />
+              <span>{product.location}</span>
+            </div>
+          )}
         </CardContent>
         
         <CardFooter className="p-4 pt-0">
@@ -116,12 +132,12 @@ export const ProductCard = ({ product, isLoggedIn, currentUserId = "current-user
                 <>
                   <Button 
                     size="sm" 
-                    className="flex-1"
+                    className="flex-1 bg-green-600 hover:bg-green-700"
                     onClick={handleBuy}
                     disabled={product.status !== "available"}
                   >
                     <ShoppingCart className="h-4 w-4 mr-1" />
-                    Buy
+                    Buy Now
                   </Button>
                   <Button 
                     variant="outline" 

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, User, LogIn, LogOut, Filter, ShoppingCart, LayoutDashboard } from "lucide-react";
+import { Search, Plus, User, LogIn, LogOut, Filter, ShoppingCart, LayoutDashboard, Shield } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { AddProductDialog } from "@/components/AddProductDialog";
 import { AuthDialog } from "@/components/AuthDialog";
@@ -33,7 +33,7 @@ const Index = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
-  const { user, signOut, loading, getProducts } = useSupabase();
+  const { user, signOut, loading, getProducts, isAdmin } = useSupabase();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -97,6 +97,14 @@ const Index = () => {
             <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:gap-3">
               {user ? (
                 <>
+                  {isAdmin && (
+                    <Link to="/admin">
+                      <Button variant="outline" size="sm" className="text-xs lg:text-sm bg-green-50 border-green-200 hover:bg-green-100">
+                        <Shield className="h-4 w-4 mr-1 lg:mr-2" />
+                        <span className="hidden sm:inline">Admin Panel</span>
+                      </Button>
+                    </Link>
+                  )}
                   <Link to="/cart">
                     <Button variant="outline" size="sm" className="text-xs lg:text-sm">
                       <ShoppingCart className="h-4 w-4 mr-1 lg:mr-2" />
@@ -252,16 +260,13 @@ const Index = () => {
         )}
       </section>
 
-      {/* Footer */}
       <Footer />
 
-      {/* Add Product Dialog */}
       <AddProductDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
       />
 
-      {/* Auth Dialog */}
       <AuthDialog 
         open={isAuthDialogOpen} 
         onOpenChange={setIsAuthDialogOpen}

@@ -5,11 +5,11 @@ import { User, Session } from '@supabase/supabase-js';
 
 interface Profile {
   id: string;
-  email: string;
-  full_name: string;
-  avatar_url?: string;
-  phone?: string;
-  location?: string;
+  email: string | null;
+  full_name: string | null;
+  avatar_url?: string | null;
+  phone?: string | null;
+  location?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -17,12 +17,15 @@ interface Profile {
 interface Product {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
-  image_url: string;
+  image_url: string | null;
   status: "available" | "sold" | "swapped";
+  category: string;
+  location?: string | null;
   owner_id: string;
   created_at: string;
+  updated_at: string;
 }
 
 interface SwapRequest {
@@ -135,7 +138,7 @@ export const useSupabase = () => {
     return data || [];
   };
 
-  const addProduct = async (product: Omit<Product, 'id' | 'created_at' | 'owner_id'>): Promise<Product | null> => {
+  const addProduct = async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'owner_id'>): Promise<Product | null> => {
     if (!user) return null;
     
     const { data, error } = await supabase
@@ -153,11 +156,13 @@ export const useSupabase = () => {
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product | null> => {
+    if (!user) return null;
+    
     const { data, error } = await supabase
       .from('products')
       .update(updates)
       .eq('id', id)
-      .eq('owner_id', user?.id)
+      .eq('owner_id', user.id)
       .select()
       .single();
     
@@ -170,11 +175,13 @@ export const useSupabase = () => {
   };
 
   const deleteProduct = async (id: string): Promise<boolean> => {
+    if (!user) return false;
+    
     const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id)
-      .eq('owner_id', user?.id);
+      .eq('owner_id', user.id);
     
     if (error) {
       console.error('Error deleting product:', error);
@@ -228,17 +235,33 @@ export const useSupabase = () => {
     return data;
   };
 
-  const getSwapRequests = async (): Promise<{ received: SwapRequest[], sent: SwapRequest[] }> => {
+  const getSwapRequests = async (): Promise<{ received: any[], sent: any[] }> => {
     if (!user) return { received: [], sent: [] };
     
+    // Get products owned by current user to find swap requests for them
+    const { data: userProducts } = await supabase
+      .from('products')
+      .select('id')
+      .eq('owner_id', user.id);
+    
+    const productIds = userProducts?.map(p => p.id) || [];
+    
     const [receivedResponse, sentResponse] = await Promise.all([
+      // Received requests (for user's products)
+      productIds.length > 0 ? supabase
+        .from('swap_requests')
+        .select(`
+          *,
+          products!inner(*)
+        `)
+        .in('product_id', productIds) : { data: [] },
+      // Sent requests (by current user)
       supabase
         .from('swap_requests')
-        .select('*, products!inner(*)')
-        .eq('products.owner_id', user.id),
-      supabase
-        .from('swap_requests')
-        .select('*, products(*)')
+        .select(`
+          *,
+          products(*)
+        `)
         .eq('requester_id', user.id)
     ]);
     

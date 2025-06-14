@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, User, LogIn, LogOut, Filter, ShoppingCart, LayoutDashboard } from "lucide-react";
@@ -30,7 +31,25 @@ const Index = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const { user, signOut, loading } = useSupabase();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const { user, signOut, loading, getProducts } = useSupabase();
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const fetchedProducts = await getProducts();
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        toast.error("Error loading products");
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [getProducts]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -41,157 +60,9 @@ const Index = () => {
     }
   };
 
-  // Nigerian-focused mock data with local context
-  const mockProducts: Product[] = [
-    {
-      id: "1",
-      name: "iPhone 14 Pro Max",
-      description: "Brand new, imported from Dubai. 256GB storage, dual SIM support",
-      price: 850000,
-      image_url: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400",
-      status: "available" as const,
-      owner_id: "user1",
-      created_at: new Date().toISOString(),
-      category: "smartphones",
-      location: "Lagos, VI"
-    },
-    {
-      id: "2",
-      name: "MacBook Air M2",
-      description: "Perfect for students and professionals. Used for 6 months, excellent condition",
-      price: 1200000,
-      image_url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400",
-      status: "available" as const,
-      owner_id: "user2",
-      created_at: new Date().toISOString(),
-      category: "laptops",
-      location: "Abuja, Wuse"
-    },
-    {
-      id: "3",
-      name: "Samsung Galaxy Watch 5",
-      description: "Health tracking, GPS enabled. Great for fitness enthusiasts",
-      price: 180000,
-      image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
-      status: "sold" as const,
-      owner_id: "user3",
-      created_at: new Date().toISOString(),
-      category: "accessories",
-      location: "Port Harcourt"
-    },
-    {
-      id: "4",
-      name: "iPad Pro 12.9\" M2",
-      description: "Latest model with Apple Pencil included. Perfect for digital art and work",
-      price: 950000,
-      image_url: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400",
-      status: "available" as const,
-      owner_id: "user4",
-      created_at: new Date().toISOString(),
-      category: "tablets",
-      location: "Kano"
-    },
-    {
-      id: "5",
-      name: "Samsung Galaxy S23 Ultra",
-      description: "Flagship Android phone, 1TB storage, S Pen included. Excellent camera",
-      price: 750000,
-      image_url: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400",
-      status: "available" as const,
-      owner_id: "user5",
-      created_at: new Date().toISOString(),
-      category: "smartphones",
-      location: "Ibadan"
-    },
-    {
-      id: "6",
-      name: "HP Pavilion Gaming Laptop",
-      description: "Intel i5, 16GB RAM, GTX graphics. Perfect for gaming and work",
-      price: 650000,
-      image_url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400",
-      status: "available" as const,
-      owner_id: "user6",
-      created_at: new Date().toISOString(),
-      category: "laptops",
-      location: "Enugu"
-    },
-    {
-      id: "7",
-      name: "LG 55\" Smart TV",
-      description: "4K Ultra HD, WebOS, Netflix built-in. Perfect for Nigerian movies and sports",
-      price: 420000,
-      image_url: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400",
-      status: "available" as const,
-      owner_id: "user7",
-      created_at: new Date().toISOString(),
-      category: "tvs",
-      location: "Kaduna"
-    },
-    {
-      id: "8",
-      name: "AirPods Pro 2nd Gen",
-      description: "Active noise cancellation, wireless charging. Original Apple product",
-      price: 220000,
-      image_url: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400",
-      status: "available" as const,
-      owner_id: "user8",
-      created_at: new Date().toISOString(),
-      category: "accessories",
-      location: "Jos"
-    },
-    {
-      id: "9",
-      name: "Tecno Phantom X2 Pro",
-      description: "Nigerian favorite! Excellent camera, long battery life, dual SIM",
-      price: 350000,
-      image_url: "https://images.unsplash.com/photo-1567306301408-9b74779a11af?w=400",
-      status: "swapped" as const,
-      owner_id: "user9",
-      created_at: new Date().toISOString(),
-      category: "smartphones",
-      location: "Calabar"
-    },
-    {
-      id: "10",
-      name: "Samsung Galaxy Tab A8",
-      description: "Android tablet perfect for entertainment and light work. Kids friendly",
-      price: 280000,
-      image_url: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400",
-      status: "available" as const,
-      owner_id: "user10",
-      created_at: new Date().toISOString(),
-      category: "tablets",
-      location: "Warri"
-    },
-    {
-      id: "11",
-      name: "Infinix InBook X1 Pro",
-      description: "Affordable laptop with great performance. Perfect for students",
-      price: 380000,
-      image_url: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400",
-      status: "available" as const,
-      owner_id: "user11",
-      created_at: new Date().toISOString(),
-      category: "laptops",
-      location: "Benin City"
-    },
-    {
-      id: "12",
-      name: "Sony 43\" Smart TV",
-      description: "Android TV with Google Play Store. Stream Nollywood movies easily",
-      price: 350000,
-      image_url: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400",
-      status: "available" as const,
-      owner_id: "user12",
-      created_at: new Date().toISOString(),
-      category: "tvs",
-      location: "Ilorin"
-    }
-  ];
-
-  const filteredProducts = mockProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -324,28 +195,46 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h3 className="text-2xl lg:text-3xl font-semibold mb-2">Available Gadgets</h3>
-            <p className="text-muted-foreground">
-              {filteredProducts.length} items found across Nigeria
-              {selectedCategory !== "all" && (
-                <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                  {selectedCategory}
-                </span>
-              )}
-            </p>
+            {productsLoading ? (
+              <p className="text-muted-foreground">Loading products...</p>
+            ) : (
+              <p className="text-muted-foreground">
+                {filteredProducts.length} items found across Nigeria
+                {selectedCategory !== "all" && (
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                    {selectedCategory}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              isLoggedIn={!!user}
-            />
-          ))}
-        </div>
+        {productsLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-gray-200 aspect-square rounded-lg mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                isLoggedIn={!!user}
+              />
+            ))}
+          </div>
+        )}
 
-        {filteredProducts.length === 0 && (
+        {!productsLoading && filteredProducts.length === 0 && (
           <div className="text-center py-16">
             <div className="max-w-md mx-auto">
               <h4 className="text-xl font-semibold mb-2">No gadgets found</h4>

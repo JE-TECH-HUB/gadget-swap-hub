@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
@@ -15,6 +15,7 @@ interface UserRoleData {
 export const useUserRoles = (user: User | null) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -45,6 +46,12 @@ export const useUserRoles = (user: User | null) => {
       }
     };
 
+    // Cleanup any existing subscription first
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
     fetchUserRole();
 
     // Only set up real-time subscription if user exists
@@ -52,7 +59,7 @@ export const useUserRoles = (user: User | null) => {
 
     // Set up real-time subscription for role changes
     const channel = supabase
-      .channel(`user-role-changes-${user.id}`) // Make channel name unique per user
+      .channel(`user-role-changes-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -68,11 +75,17 @@ export const useUserRoles = (user: User | null) => {
       )
       .subscribe();
 
+    // Store the channel reference
+    channelRef.current = channel;
+
     return () => {
       // Cleanup subscription
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [user?.id]); // Use user.id instead of user to prevent unnecessary re-renders
+  }, [user?.id]);
 
   const getAllUserRoles = async (): Promise<UserRoleData[]> => {
     if (!user || userRole !== 'admin') return [];

@@ -47,16 +47,19 @@ export const useUserRoles = (user: User | null) => {
 
     fetchUserRole();
 
+    // Only set up real-time subscription if user exists
+    if (!user) return;
+
     // Set up real-time subscription for role changes
     const channel = supabase
-      .channel('user-role-changes')
+      .channel(`user-role-changes-${user.id}`) // Make channel name unique per user
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'user_roles',
-          filter: `user_id=eq.${user?.id}`
+          filter: `user_id=eq.${user.id}`
         },
         (payload) => {
           console.log('Role updated:', payload);
@@ -66,9 +69,10 @@ export const useUserRoles = (user: User | null) => {
       .subscribe();
 
     return () => {
+      // Cleanup subscription
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]); // Use user.id instead of user to prevent unnecessary re-renders
 
   const getAllUserRoles = async (): Promise<UserRoleData[]> => {
     if (!user || userRole !== 'admin') return [];

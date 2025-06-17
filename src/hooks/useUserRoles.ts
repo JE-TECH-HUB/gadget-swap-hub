@@ -46,6 +46,28 @@ export const useUserRoles = (user: User | null) => {
     };
 
     fetchUserRole();
+
+    // Set up real-time subscription for role changes
+    const channel = supabase
+      .channel('user-role-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_roles',
+          filter: `user_id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('Role updated:', payload);
+          setUserRole(payload.new.role as UserRole);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const getAllUserRoles = async (): Promise<UserRoleData[]> => {

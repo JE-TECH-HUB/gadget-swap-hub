@@ -3,10 +3,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Package, MessageSquare, Plus, ArrowLeft } from "lucide-react";
+import { Shield, Users, Package, MessageSquare, Plus, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSupabase } from "@/hooks/useSupabase";
-import { useUserRoles } from "@/hooks/useUserRoles";
+import { checkAdminAccess } from "@/utils/adminUtils";
 import { AdminProductForm } from "@/components/AdminProductForm";
 import { AdminUsersTable } from "@/components/AdminUsersTable";
 import { AdminSwapRequestsTable } from "@/components/AdminSwapRequestsTable";
@@ -16,26 +16,37 @@ import { toast } from "sonner";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSupabase();
-  const { isAdmin, loading: roleLoading } = useUserRoles(user);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [accessLoading, setAccessLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !roleLoading) {
-      if (!user) {
-        toast.error("Please login to access admin dashboard");
-        navigate('/auth');
-        return;
-      }
-      
-      if (!isAdmin) {
-        toast.error("Access denied. Admin privileges required.");
-        navigate('/');
-        return;
-      }
-    }
-  }, [user, isAdmin, authLoading, roleLoading, navigate]);
+    const checkAccess = async () => {
+      if (!authLoading) {
+        if (!user) {
+          toast.error("Please login to access admin dashboard");
+          navigate('/auth');
+          return;
+        }
 
-  if (authLoading || roleLoading) {
+        console.log('Checking admin access for user:', user.email);
+        
+        // Check if user has admin access
+        const hasAdminAccess = await checkAdminAccess(user.id);
+        setIsAdmin(hasAdminAccess);
+        setAccessLoading(false);
+
+        if (!hasAdminAccess) {
+          console.log('Access denied: User does not have admin role');
+        }
+      }
+    };
+
+    checkAccess();
+  }, [user, authLoading, navigate]);
+
+  // Show loading while checking authentication and access
+  if (authLoading || accessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -46,8 +57,37 @@ const AdminDashboard = () => {
     );
   }
 
-  if (!user || !isAdmin) {
-    return null; // Will redirect via useEffect
+  // Show access denied if user is not admin
+  if (!user || isAdmin === false) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+            </div>
+            <CardTitle className="text-red-600">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              You don't have permission to access the admin dashboard.
+              {user ? ' Please contact an administrator.' : ' Please login first.'}
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={() => navigate('/')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+              {!user && (
+                <Button onClick={() => navigate('/auth')}>
+                  Login
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

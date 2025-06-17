@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { promoteUserIfSuperAdmin } from '@/utils/adminUtils';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -11,18 +12,29 @@ export const useAuth = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Handle super admin promotion on login
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('User signed in, checking for super admin promotion...');
+          await promoteUserIfSuperAdmin(session.user);
+        }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Check for super admin promotion on initial load if user exists
+      if (session?.user) {
+        await promoteUserIfSuperAdmin(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();

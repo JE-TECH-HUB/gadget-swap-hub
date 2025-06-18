@@ -2,7 +2,10 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, ShoppingCart, MessageSquare, MapPin } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Edit, Trash2, MessageSquare, ShoppingCart, Clock, MapPin } from "lucide-react";
+import { useState } from "react";
+import { SwapRequestDialog } from "./SwapRequestDialog";
 import { Link } from "react-router-dom";
 
 interface Product {
@@ -21,15 +24,31 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   isLoggedIn: boolean;
+  currentUserId?: string;
 }
 
-export const ProductCard = ({ product, isLoggedIn }: ProductCardProps) => {
-  const categoryColors: Record<string, string> = {
-    smartphones: "bg-blue-100 text-blue-800",
-    laptops: "bg-green-100 text-green-800",
-    tablets: "bg-purple-100 text-purple-800",
-    tvs: "bg-orange-100 text-orange-800",
-    accessories: "bg-pink-100 text-pink-800"
+const categoryColors: Record<string, string> = {
+  smartphones: "bg-blue-100 text-blue-800",
+  laptops: "bg-green-100 text-green-800",
+  tablets: "bg-purple-100 text-purple-800",
+  tvs: "bg-orange-100 text-orange-800",
+  accessories: "bg-pink-100 text-pink-800"
+};
+
+export const ProductCard = ({ product, isLoggedIn, currentUserId = "current-user" }: ProductCardProps) => {
+  const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
+  const isOwner = currentUserId === product.owner_id;
+
+  const handleBuy = () => {
+    console.log("Buying product:", product.id);
+  };
+
+  const handleEdit = () => {
+    console.log("Editing product:", product.id);
+  };
+
+  const handleDelete = () => {
+    console.log("Deleting product:", product.id);
   };
 
   const getStatusColor = (status: string) => {
@@ -45,6 +64,7 @@ export const ProductCard = ({ product, isLoggedIn }: ProductCardProps) => {
     }
   };
 
+  // Format price in Nigerian Naira
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -53,110 +73,104 @@ export const ProductCard = ({ product, isLoggedIn }: ProductCardProps) => {
     }).format(price);
   };
 
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  };
-
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-      <Link to={`/product/${product.id}`}>
-        <CardHeader className="p-0">
-          <div className="relative aspect-square">
-            <img
-              src={product.image_url || "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400"}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-2 left-2 flex gap-2">
-              <Badge className={categoryColors[product.category] || "bg-gray-100 text-gray-800"}>
-                {product.category}
-              </Badge>
-              <Badge className={getStatusColor(product.status)}>
-                {product.status}
-              </Badge>
-            </div>
-            {isLoggedIn && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Add to wishlist logic
-                }}
-              >
-                <Heart className="h-4 w-4" />
-              </Button>
-            )}
+    <>
+      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
+        <CardHeader className="p-0 relative">
+          <Link to={`/product/${product.id}`}>
+            <AspectRatio ratio={4/3}>
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+              />
+            </AspectRatio>
+          </Link>
+          <div className="absolute top-3 left-3">
+            <Badge className={categoryColors[product.category] || "bg-gray-100 text-gray-800"}>
+              {product.category}
+            </Badge>
+          </div>
+          <div className="absolute top-3 right-3">
+            <Badge className={getStatusColor(product.status)}>
+              {product.status}
+            </Badge>
           </div>
         </CardHeader>
-      </Link>
-
-      <CardContent className="p-4">
-        <Link to={`/product/${product.id}`}>
-          <div className="space-y-2">
-            <h3 className="font-semibold text-lg line-clamp-1 hover:text-primary transition-colors">
+        
+        <CardContent className="p-4">
+          <Link to={`/product/${product.id}`}>
+            <h3 className="font-semibold text-lg mb-2 line-clamp-1 hover:text-green-600 cursor-pointer">
               {product.name}
             </h3>
-            <p className="text-muted-foreground text-sm line-clamp-2">
-              {truncateText(product.description, 80)}
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-green-600">
-                {formatPrice(product.price)}
-              </span>
-              {product.location && (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  <span className="truncate max-w-20">{product.location}</span>
-                </div>
-              )}
+          </Link>
+          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+            {product.description}
+          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-2xl font-bold text-green-600">{formatPrice(product.price)}</p>
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1" />
+              <span>2 days ago</span>
             </div>
           </div>
-        </Link>
-      </CardContent>
+          {product.location && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3 mr-1" />
+              <span>{product.location}</span>
+            </div>
+          )}
+        </CardContent>
+        
+        <CardFooter className="p-4 pt-0">
+          {isLoggedIn ? (
+            <div className="flex gap-2 w-full">
+              {isOwner ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={handleEdit} className="flex-1">
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDelete}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    size="sm" 
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    onClick={handleBuy}
+                    disabled={product.status !== "available"}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    Buy Now
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsSwapDialogOpen(true)}
+                    disabled={product.status !== "available"}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    Swap
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : (
+            <Button className="w-full" disabled size="sm">
+              Login to Buy or Swap
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
 
-      <CardFooter className="p-4 pt-0 flex gap-2">
-        {isLoggedIn ? (
-          <>
-            <Button 
-              size="sm" 
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              disabled={product.status !== "available"}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Add to cart logic
-              }}
-            >
-              <ShoppingCart className="h-3 w-3 mr-1" />
-              Buy
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1"
-              disabled={product.status !== "available"}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Open swap dialog logic
-              }}
-            >
-              <MessageSquare className="h-3 w-3 mr-1" />
-              Swap
-            </Button>
-          </>
-        ) : (
-          <Link to="/auth" className="w-full">
-            <Button size="sm" className="w-full">
-              Login to Buy
-            </Button>
-          </Link>
-        )}
-      </CardFooter>
-    </Card>
+      <SwapRequestDialog
+        open={isSwapDialogOpen}
+        onOpenChange={setIsSwapDialogOpen}
+        product={product}
+      />
+    </>
   );
 };

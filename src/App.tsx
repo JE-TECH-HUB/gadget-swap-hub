@@ -9,8 +9,6 @@ import NotFound from "./pages/NotFound";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Dashboard from "./pages/Dashboard";
-import Auth from "./pages/Auth";
-import AdminDashboard from "./pages/AdminDashboard";
 import { MyProductsPage } from "./components/MyProductsPage";
 import { SwapRequestsPage } from "./components/SwapRequestsPage";
 
@@ -24,11 +22,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/my-products" element={<MyProductsPage />} />
           <Route path="/swap-requests" element={<SwapRequestsPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

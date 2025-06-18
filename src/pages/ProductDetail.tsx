@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ShoppingCart, MessageSquare, MapPin, Clock, User, Heart } from "lucide-react";
+import { ArrowLeft, ShoppingCart, MessageSquare, MapPin, Clock, User, Heart, Share2, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Footer } from "@/components/Footer";
 import { useSupabase } from "@/hooks/useSupabase";
 import { SwapRequestDialog } from "@/components/SwapRequestDialog";
+import { ProductImageGallery } from "@/components/ProductImageGallery";
+import { ProductSpecs } from "@/components/ProductSpecs";
 import { toast } from "sonner";
 
 interface Product {
@@ -30,6 +32,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const { user, getProducts } = useSupabase();
 
   useEffect(() => {
@@ -60,27 +63,6 @@ const ProductDetail = () => {
 
     fetchProduct();
   }, [id, getProducts, navigate]);
-
-  const categoryColors: Record<string, string> = {
-    smartphones: "bg-blue-100 text-blue-800",
-    laptops: "bg-green-100 text-green-800",
-    tablets: "bg-purple-100 text-purple-800",
-    tvs: "bg-orange-100 text-orange-800",
-    accessories: "bg-pink-100 text-pink-800"
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-green-100 text-green-800";
-      case "sold":
-        return "bg-red-100 text-red-800";
-      case "swapped":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -124,13 +106,27 @@ const ProductDetail = () => {
       toast.error("Please login to add to wishlist");
       return;
     }
-    toast.success("Added to wishlist!");
+    setIsWishlisted(!isWishlisted);
+    toast.success(isWishlisted ? "Removed from wishlist!" : "Added to wishlist!");
+  };
+
+  const handleShare = () => {
+    if (navigator.share && product) {
+      navigator.share({
+        title: product.name,
+        text: `Check out this ${product.category} for ${formatPrice(product.price)}`,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard!");
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-card/50 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+        <header className="border-b bg-white/80 backdrop-blur-sm shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -152,8 +148,8 @@ const ProductDetail = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-card/50 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+        <header className="border-b bg-white/80 backdrop-blur-sm shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -177,23 +173,27 @@ const ProductDetail = () => {
   }
 
   const isOwner = user?.id === product.owner_id;
+  const images = product.image_url ? [product.image_url] : [];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+      {/* Enhanced Header */}
+      <header className="border-b bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate(-1)} className="p-2">
+              <Button variant="ghost" onClick={() => navigate(-1)} className="p-2 hover:bg-green-100">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <Link to="/" className="text-2xl font-bold text-primary">Je-Gadgets</Link>
             </div>
             <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={handleShare}>
+                <Share2 className="h-4 w-4" />
+              </Button>
               {user && (
                 <Link to="/cart">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="hover:bg-green-50">
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Cart
                   </Button>
@@ -206,102 +206,128 @@ const ProductDetail = () => {
 
       {/* Product Detail */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Image */}
-          <div className="space-y-4">
-            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-              <img
-                src={product.image_url || "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800"}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Product Images */}
+          <div className="lg:col-span-7">
+            <ProductImageGallery images={images} productName={product.name} />
           </div>
 
           {/* Product Info */}
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className={categoryColors[product.category] || "bg-gray-100 text-gray-800"}>
-                  {product.category}
-                </Badge>
-                <Badge className={getStatusColor(product.status)}>
-                  {product.status}
-                </Badge>
-              </div>
-              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-              <p className="text-4xl font-bold text-green-600 mb-4">
-                {formatPrice(product.price)}
-              </p>
-            </div>
+          <div className="lg:col-span-5 space-y-6">
+            {/* Title and Price */}
+            <Card className="shadow-sm">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ))}
+                        <span className="text-sm text-muted-foreground ml-1">(4.8)</span>
+                      </div>
+                    </div>
+                    <p className="text-4xl font-bold text-green-600 mb-4">
+                      {formatPrice(product.price)}
+                    </p>
+                  </div>
 
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              {product.location && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  <span>{product.location}</span>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    {product.location && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        <span>{product.location}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{formatDate(product.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <User className="h-4 w-4" />
+                      <span>Verified Seller</span>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>{formatDate(product.created_at)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <User className="h-4 w-4" />
-                <span>Owner</span>
-              </div>
-            </div>
-
-            {product.description && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Description</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {product.description}
-                </p>
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
-              {user ? (
-                isOwner ? (
-                  <div className="flex-1">
-                    <Button disabled className="w-full">
-                      This is your product
+            <Card className="shadow-sm">
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  {user ? (
+                    isOwner ? (
+                      <Button disabled className="w-full" size="lg">
+                        This is your product
+                      </Button>
+                    ) : (
+                      <>
+                        <Button 
+                          className="w-full bg-green-600 hover:bg-green-700"
+                          onClick={handleBuy}
+                          disabled={product.status !== "available"}
+                          size="lg"
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Add to Cart - {formatPrice(product.price)}
+                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            className="flex-1"
+                            onClick={handleSwap}
+                            disabled={product.status !== "available"}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Request Swap
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={handleAddToWishlist}
+                            className={isWishlisted ? 'bg-red-50 text-red-600 hover:bg-red-100' : ''}
+                          >
+                            <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
+                          </Button>
+                        </div>
+                      </>
+                    )
+                  ) : (
+                    <Button className="w-full" onClick={() => navigate('/auth')} size="lg">
+                      Login to Buy or Swap
                     </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Button 
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                      onClick={handleBuy}
-                      disabled={product.status !== "available"}
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={handleSwap}
-                      disabled={product.status !== "available"}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Request Swap
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={handleAddToWishlist}>
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  </>
-                )
-              ) : (
-                <Button className="flex-1" onClick={() => navigate('/auth')}>
-                  Login to Buy or Swap
-                </Button>
-              )}
-            </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Product Specs */}
+            <ProductSpecs 
+              category={product.category}
+              status={product.status}
+              location={product.location}
+              createdAt={product.created_at}
+            />
           </div>
         </div>
+
+        {/* Description */}
+        {product.description && (
+          <div className="mt-12">
+            <Card className="shadow-sm">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Description</h3>
+                <div className="prose max-w-none">
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                    {product.description}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       <Footer />

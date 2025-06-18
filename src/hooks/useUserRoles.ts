@@ -16,6 +16,7 @@ export const useUserRoles = (user: User | null) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -47,19 +48,23 @@ export const useUserRoles = (user: User | null) => {
     };
 
     // Cleanup any existing subscription first
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    const cleanup = () => {
+      if (channelRef.current && isSubscribedRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        isSubscribedRef.current = false;
+      }
+    };
 
+    cleanup();
     fetchUserRole();
 
-    // Only set up real-time subscription if user exists
-    if (!user) return;
+    // Only set up real-time subscription if user exists and we haven't already subscribed
+    if (!user || isSubscribedRef.current) return;
 
     // Set up real-time subscription for role changes
     const channel = supabase
-      .channel(`user-role-changes-${user.id}`)
+      .channel(`user-role-changes-${user.id}-${Date.now()}`) // Add timestamp to make channel unique
       .on(
         'postgres_changes',
         {
@@ -73,19 +78,28 @@ export const useUserRoles = (user: User | null) => {
           setUserRole(payload.new.role as UserRole);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        }
+      });
 
     // Store the channel reference
     channelRef.current = channel;
 
+    return cleanup;
+  }, [user?.id]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      // Cleanup subscription
-      if (channelRef.current) {
+      if (channelRef.current && isSubscribedRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+        isSubscribedRef.current = false;
       }
     };
-  }, [user?.id]);
+  }, []);
 
   const getAllUserRoles = async (): Promise<UserRoleData[]> => {
     if (!user || userRole !== 'admin') return [];

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +22,7 @@ export const AdminRecentActivity = () => {
   useEffect(() => {
     const fetchRecentActivity = async () => {
       try {
-        const [products, swapRequests] = await Promise.all([
+        const [products, swapRequestsData] = await Promise.all([
           getProducts(),
           getSwapRequests()
         ]);
@@ -39,7 +38,9 @@ export const AdminRecentActivity = () => {
             status: product.status
           }));
 
-        const swapActivities: Activity[] = swapRequests
+        // Fix: Handle the object structure returned by getSwapRequests
+        const allSwapRequests = [...swapRequestsData.received, ...swapRequestsData.sent];
+        const swapActivities: Activity[] = allSwapRequests
           .slice(0, 3)
           .map(request => ({
             id: request.id,

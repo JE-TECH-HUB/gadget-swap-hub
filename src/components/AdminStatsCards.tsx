@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users, MessageSquare, TrendingUp } from "lucide-react";
@@ -20,14 +19,15 @@ export const AdminStatsCards = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [products, swapRequests, userRoles] = await Promise.all([
+        const [products, swapRequestsData, userRoles] = await Promise.all([
           getProducts(),
           getSwapRequests(),
           getAllUserRoles()
         ]);
 
         const availableProducts = products.filter(p => p.status === 'available').length;
-        const pendingSwaps = swapRequests.filter(r => r.status === 'pending').length;
+        const allSwapRequests = [...swapRequestsData.received, ...swapRequestsData.sent];
+        const pendingSwaps = allSwapRequests.filter(r => r.status === 'pending').length;
 
         setStats({
           totalProducts: products.length,

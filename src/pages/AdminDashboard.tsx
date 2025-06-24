@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Package, MessageSquare, Plus, ArrowLeft, AlertTriangle, BarChart3 } from "lucide-react";
+import { Shield, Users, Package, MessageSquare, Plus, ArrowLeft, AlertTriangle, BarChart3, Activity, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSupabase } from "@/hooks/useSupabase";
 import { checkAdminAccess } from "@/utils/adminUtils";
@@ -13,6 +13,8 @@ import { AdminSwapRequestsTable } from "@/components/AdminSwapRequestsTable";
 import { AdminProductsTable } from "@/components/AdminProductsTable";
 import { AdminStatsCards } from "@/components/AdminStatsCards";
 import { AdminRecentActivity } from "@/components/AdminRecentActivity";
+import { AdminAnalytics } from "@/components/AdminAnalytics";
+import { AdminSystemHealth } from "@/components/AdminSystemHealth";
 import { toast } from "sonner";
 
 const AdminDashboard = () => {
@@ -122,7 +124,7 @@ const AdminDashboard = () => {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm">
+          <TabsList className="grid w-full grid-cols-7 bg-white shadow-sm">
             <TabsTrigger value="overview" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
               <BarChart3 className="h-4 w-4 mr-2" />
               Overview
@@ -142,6 +144,14 @@ const AdminDashboard = () => {
             <TabsTrigger value="swap-requests" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
               <MessageSquare className="h-4 w-4 mr-2" />
               Swaps
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="system" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
+              <Activity className="h-4 w-4 mr-2" />
+              System
             </TabsTrigger>
           </TabsList>
 
@@ -189,6 +199,22 @@ const AdminDashboard = () => {
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Review Swap Requests
                     </Button>
+                    <Button 
+                      onClick={() => setActiveTab("analytics")} 
+                      variant="outline" 
+                      className="w-full justify-start hover:bg-purple-50"
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      View Analytics
+                    </Button>
+                    <Button 
+                      onClick={() => setActiveTab("system")} 
+                      variant="outline" 
+                      className="w-full justify-start hover:bg-gray-50"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      System Health
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
@@ -213,6 +239,14 @@ const AdminDashboard = () => {
 
           <TabsContent value="swap-requests" className="mt-6">
             <AdminSwapRequestsTable />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <AdminAnalytics />
+          </TabsContent>
+
+          <TabsContent value="system" className="mt-6">
+            <AdminSystemHealth />
           </TabsContent>
         </Tabs>
       </div>

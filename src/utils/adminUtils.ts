@@ -26,7 +26,7 @@ export const promoteUserIfSuperAdmin = async (user: User): Promise<boolean> => {
       .eq('user_id', user.id)
       .single();
 
-    if (roleError) {
+    if (roleError && roleError.code !== 'PGRST116') {
       console.error('Error fetching user role:', roleError);
       return false;
     }
@@ -37,15 +37,27 @@ export const promoteUserIfSuperAdmin = async (user: User): Promise<boolean> => {
       return true;
     }
 
-    // Update role to admin
-    const { error: updateError } = await supabase
-      .from('user_roles')
-      .update({ role: 'admin' })
-      .eq('user_id', user.id);
+    // If no role exists, insert admin role
+    if (!currentRole) {
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: user.id, role: 'admin' });
 
-    if (updateError) {
-      console.error('Error promoting super admin:', updateError);
-      return false;
+      if (insertError) {
+        console.error('Error inserting admin role:', insertError);
+        return false;
+      }
+    } else {
+      // Update existing role to admin
+      const { error: updateError } = await supabase
+        .from('user_roles')
+        .update({ role: 'admin' })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Error updating to admin role:', updateError);
+        return false;
+      }
     }
 
     console.log('Super admin successfully promoted to admin role');

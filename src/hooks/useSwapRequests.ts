@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
@@ -7,98 +8,149 @@ interface SwapRequest {
   requester_id: string;
   product_id: string;
   message: string;
-  status: "pending" | "accepted" | "rejected";
+  status: 'pending' | 'accepted' | 'rejected';
   created_at: string;
+  product?: {
+    id: string;
+    name: string;
+    image_url: string | null;
+    price: number;
+    owner_id: string;
+  };
+  requester?: {
+    id: string;
+    email: string;
+    full_name: string | null;
+  };
 }
 
 export const useSwapRequests = (user: User | null) => {
-  const sendSwapRequest = async (productId: string, message: string): Promise<SwapRequest | null> => {
-    if (!user) return null;
-    
-    const { data, error } = await supabase
-      .from('swap_requests')
-      .insert({
-        requester_id: user.id,
-        product_id: productId,
-        message,
-        status: 'pending'
-      })
-      .select()
-      .single();
-    
-    if (error) {
+  const [swapRequests, setSwapRequests] = useState<{
+    received: SwapRequest[];
+    sent: SwapRequest[];
+  }>({
+    received: [],
+    sent: []
+  });
+  const [loading, setLoading] = useState(false);
+
+  const sendSwapRequest = async (productId: string, message: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('swap_requests')
+        .insert({
+          requester_id: user.id,
+          product_id: productId,
+          message: message,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error sending swap request:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
       console.error('Error sending swap request:', error);
-      return null;
+      return false;
     }
-    
-    return {
-      ...data,
-      status: data.status as "pending" | "accepted" | "rejected"
-    };
   };
 
-  const getSwapRequests = async (): Promise<{ received: any[], sent: any[] }> => {
+  const getSwapRequests = async () => {
     if (!user) return { received: [], sent: [] };
-    
-    // Get products owned by current user to find swap requests for them
-    const { data: userProducts } = await supabase
-      .from('products')
-      .select('id')
-      .eq('owner_id', user.id);
-    
-    const productIds = userProducts?.map(p => p.id) || [];
-    
-    const [receivedResponse, sentResponse] = await Promise.all([
-      // Received requests (for user's products)
-      productIds.length > 0 ? supabase
+
+    try {
+      setLoading(true);
+
+      // Get swap requests received (for user's products)
+      const { data: receivedData, error: receivedError } = await supabase
         .from('swap_requests')
         .select(`
           *,
-          products!inner(*)
+          products!inner(id, name, image_url, price, owner_id),
+          profiles!swap_requests_requester_id_fkey(id, email, full_name)
         `)
-        .in('product_id', productIds) : { data: [] },
-      // Sent requests (by current user)
-      supabase
+        .eq('products.owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (receivedError) {
+        console.error('Error fetching received swap requests:', receivedError);
+      }
+
+      // Get swap requests sent by user
+      const { data: sentData, error: sentError } = await supabase
         .from('swap_requests')
         .select(`
           *,
-          products(*)
+          products(id, name, image_url, price, owner_id),
+          profiles!swap_requests_requester_id_fkey(id, email, full_name)
         `)
         .eq('requester_id', user.id)
-    ]);
-    
-    return {
-      received: (receivedResponse.data || []).map(request => ({
+        .order('created_at', { ascending: false });
+
+      if (sentError) {
+        console.error('Error fetching sent swap requests:', sentError);
+      }
+
+      const received = (receivedData || []).map(request => ({
         ...request,
-        status: request.status as "pending" | "accepted" | "rejected"
-      })),
-      sent: (sentResponse.data || []).map(request => ({
+        product: request.products,
+        requester: request.profiles
+      }));
+
+      const sent = (sentData || []).map(request => ({
         ...request,
-        status: request.status as "pending" | "accepted" | "rejected"
-      }))
-    };
+        product: request.products,
+        requester: request.profiles
+      }));
+
+      setSwapRequests({ received, sent });
+      return { received, sent };
+    } catch (error) {
+      console.error('Error fetching swap requests:', error);
+      return { received: [], sent: [] };
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateSwapRequest = async (id: string, status: "accepted" | "rejected"): Promise<SwapRequest | null> => {
-    const { data, error } = await supabase
-      .from('swap_requests')
-      .update({ status })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
+  const updateSwapRequest = async (requestId: string, status: 'accepted' | 'rejected'): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('swap_requests')
+        .update({ status })
+        .eq('id', requestId);
+
+      if (error) {
+        console.error('Error updating swap request:', error);
+        return false;
+      }
+
+      // Refresh the swap requests after update
+      await getSwapRequests();
+      return true;
+    } catch (error) {
       console.error('Error updating swap request:', error);
-      return null;
+      return false;
     }
-    
-    return {
-      ...data,
-      status: data.status as "pending" | "accepted" | "rejected"
-    };
   };
+
+  useEffect(() => {
+    if (user) {
+      getSwapRequests();
+    }
+  }, [user]);
 
   return {
+    swapRequests,
+    loading,
     sendSwapRequest,
     getSwapRequests,
     updateSwapRequest,

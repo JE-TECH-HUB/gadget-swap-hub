@@ -72,8 +72,7 @@ export const useSwapRequests = (user: User | null) => {
         .from('swap_requests')
         .select(`
           *,
-          products!inner(id, name, image_url, price, owner_id),
-          profiles!swap_requests_requester_id_fkey(id, email, full_name)
+          products!inner(id, name, image_url, price, owner_id)
         `)
         .eq('products.owner_id', user.id)
         .order('created_at', { ascending: false });
@@ -87,8 +86,7 @@ export const useSwapRequests = (user: User | null) => {
         .from('swap_requests')
         .select(`
           *,
-          products(id, name, image_url, price, owner_id),
-          profiles!swap_requests_requester_id_fkey(id, email, full_name)
+          products(id, name, image_url, price, owner_id)
         `)
         .eq('requester_id', user.id)
         .order('created_at', { ascending: false });
@@ -97,16 +95,33 @@ export const useSwapRequests = (user: User | null) => {
         console.error('Error fetching sent swap requests:', sentError);
       }
 
-      const received = (receivedData || []).map(request => ({
+      // Get requester profiles for received requests
+      const requesterIds = (receivedData || []).map(r => r.requester_id);
+      let requesterProfiles: any[] = [];
+      
+      if (requesterIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .in('id', requesterIds);
+        
+        if (!profilesError) {
+          requesterProfiles = profilesData || [];
+        }
+      }
+
+      const received: SwapRequest[] = (receivedData || []).map(request => ({
         ...request,
+        status: request.status as 'pending' | 'accepted' | 'rejected',
         product: request.products,
-        requester: request.profiles
+        requester: requesterProfiles.find(p => p.id === request.requester_id)
       }));
 
-      const sent = (sentData || []).map(request => ({
+      const sent: SwapRequest[] = (sentData || []).map(request => ({
         ...request,
+        status: request.status as 'pending' | 'accepted' | 'rejected',
         product: request.products,
-        requester: request.profiles
+        requester: undefined // Not needed for sent requests
       }));
 
       setSwapRequests({ received, sent });

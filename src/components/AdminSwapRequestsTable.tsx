@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Check, X, Eye, Search, MessageSquare, Clock } from "lucide-react";
 import { useSupabase } from "@/hooks/useSupabase";
+import { useSwapRequests } from "@/hooks/useSwapRequests";
 import { toast } from "sonner";
 
 interface SwapRequest {
@@ -18,51 +19,42 @@ interface SwapRequest {
   message: string;
   status: "pending" | "accepted" | "rejected";
   created_at: string;
-  products?: {
+  product?: {
+    id: string;
     name: string;
+    image_url: string | null;
     price: number;
-    image_url?: string;
+    owner_id: string;
+  };
+  requester?: {
+    id: string;
+    email: string;
+    full_name: string | null;
   };
 }
 
 export const AdminSwapRequestsTable = () => {
-  const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
+  const { user } = useSupabase();
+  const { swapRequests, loading, getSwapRequests, updateSwapRequest } = useSwapRequests(user);
   const [filteredRequests, setFilteredRequests] = useState<SwapRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedRequest, setSelectedRequest] = useState<SwapRequest | null>(null);
-  const { getSwapRequests, updateSwapRequest } = useSupabase();
 
-  useEffect(() => {
-    fetchSwapRequests();
-  }, []);
+  // Combine all swap requests for admin view
+  const allRequests = [...swapRequests.received, ...swapRequests.sent];
 
   useEffect(() => {
     filterRequests();
-  }, [swapRequests, searchTerm, statusFilter]);
-
-  const fetchSwapRequests = async () => {
-    try {
-      setLoading(true);
-      const { received, sent } = await getSwapRequests();
-      const allRequests = [...received, ...sent];
-      setSwapRequests(allRequests);
-    } catch (error) {
-      console.error('Error fetching swap requests:', error);
-      toast.error("Error loading swap requests");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [allRequests, searchTerm, statusFilter]);
 
   const filterRequests = () => {
-    let filtered = swapRequests;
+    let filtered = allRequests;
 
     if (searchTerm) {
       filtered = filtered.filter(request =>
         request.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.products?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        request.product?.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -77,7 +69,6 @@ export const AdminSwapRequestsTable = () => {
     const success = await updateSwapRequest(requestId, newStatus);
     if (success) {
       toast.success(`Swap request ${newStatus}`);
-      fetchSwapRequests();
     } else {
       toast.error("Failed to update swap request");
     }
@@ -166,6 +157,7 @@ export const AdminSwapRequestsTable = () => {
                 <TableRow>
                   <TableHead>Product</TableHead>
                   <TableHead>Request Message</TableHead>
+                  <TableHead>Requester</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
@@ -176,17 +168,17 @@ export const AdminSwapRequestsTable = () => {
                   <TableRow key={request.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {request.products?.image_url && (
+                        {request.product?.image_url && (
                           <img 
-                            src={request.products.image_url} 
-                            alt={request.products.name}
+                            src={request.product.image_url} 
+                            alt={request.product.name}
                             className="w-10 h-10 rounded object-cover"
                           />
                         )}
                         <div>
-                          <div className="font-medium">{request.products?.name || "Product"}</div>
+                          <div className="font-medium">{request.product?.name || "Product"}</div>
                           <div className="text-sm text-muted-foreground">
-                            {formatPrice(request.products?.price)}
+                            {formatPrice(request.product?.price)}
                           </div>
                         </div>
                       </div>
@@ -194,6 +186,12 @@ export const AdminSwapRequestsTable = () => {
                     <TableCell>
                       <div className="max-w-xs truncate" title={request.message}>
                         {request.message}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{request.requester?.full_name || "Unknown"}</div>
+                        <div className="text-muted-foreground">{request.requester?.email || "No email"}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -229,7 +227,7 @@ export const AdminSwapRequestsTable = () => {
                                   <div>
                                     <label className="text-sm font-medium">Product</label>
                                     <p className="text-sm text-muted-foreground">
-                                      {selectedRequest.products?.name}
+                                      {selectedRequest.product?.name}
                                     </p>
                                   </div>
                                   <div>

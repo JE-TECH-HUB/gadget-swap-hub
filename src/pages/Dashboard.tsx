@@ -165,15 +165,12 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {user.email}</p>
           </div>
-          <AddProductDialog 
-            trigger={
-              <Button className="bg-green-600 hover:bg-green-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Product
-              </Button>
-            }
-            onProductAdded={fetchDashboardData}
-          />
+          <AddProductDialog onProductAdded={fetchDashboardData}>
+            <Button className="bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Product
+            </Button>
+          </AddProductDialog>
         </div>
 
         {loading ? (
@@ -245,10 +242,9 @@ const Dashboard = () => {
                       <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No products yet</h3>
                       <p className="text-muted-foreground mb-4">Start selling by adding your first product</p>
-                      <AddProductDialog 
-                        trigger={<Button>Add Your First Product</Button>}
-                        onProductAdded={fetchDashboardData}
-                      />
+                      <AddProductDialog onProductAdded={fetchDashboardData}>
+                        <Button>Add Your First Product</Button>
+                      </AddProductDialog>
                     </CardContent>
                   </Card>
                 ) : (

@@ -31,6 +31,7 @@ export const useSupabase = () => {
     updateProduct,
     deleteProduct,
     uploadImage: uploadImageWrapper,
+    createSwapRequest: sendSwapRequest,
     sendSwapRequest,
     getSwapRequests,
     updateSwapRequest,

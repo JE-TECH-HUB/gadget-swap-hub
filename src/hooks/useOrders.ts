@@ -87,7 +87,22 @@ export const useOrders = (user: User | null) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Properly map and cast the data
+      const orders: Order[] = (data || []).map(order => ({
+        ...order,
+        status: order.status as 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled',
+        payment_status: order.payment_status as 'pending' | 'completed' | 'failed',
+        product: order.products ? {
+          id: order.products.id,
+          name: order.products.name,
+          price: order.products.price,
+          image_url: order.products.image_url,
+          category: order.products.category
+        } : undefined
+      }));
+
+      return orders;
     } catch (error) {
       console.error('Error fetching orders:', error);
       return [];

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, User, LogIn, LogOut, Filter, ShoppingCart, LayoutDashboard, Shield } from "lucide-react";
@@ -32,11 +32,15 @@ const Index = () => {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
-  const { user, signOut, loading, getProducts, isAdmin } = useSupabase();
+  const [productsLoading, setProductsLoading] = useState(false);
+  const { user, signOut, loading: authLoading, getProducts, isAdmin } = useSupabase();
 
+  // Optimize product fetching - only fetch when user state is determined
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to complete
+    
     const fetchProducts = async () => {
+      setProductsLoading(true);
       try {
         const fetchedProducts = await getProducts();
         setProducts(fetchedProducts);
@@ -49,7 +53,7 @@ const Index = () => {
     };
 
     fetchProducts();
-  }, [getProducts]);
+  }, [authLoading, getProducts]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -60,14 +64,18 @@ const Index = () => {
     }
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Memoize filtered products to avoid recalculation on every render
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchTerm, selectedCategory]);
 
-  if (loading) {
+  // Show loading only for auth, not for products
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -203,18 +211,20 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h3 className="text-2xl lg:text-3xl font-semibold mb-2">Available Gadgets</h3>
-            {productsLoading ? (
-              <p className="text-muted-foreground">Loading products...</p>
-            ) : (
-              <p className="text-muted-foreground">
-                {filteredProducts.length} items found across Nigeria
-                {selectedCategory !== "all" && (
-                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                    {selectedCategory}
-                  </span>
-                )}
-              </p>
-            )}
+            <p className="text-muted-foreground">
+              {productsLoading ? (
+                "Loading products..."
+              ) : (
+                <>
+                  {filteredProducts.length} items found across Nigeria
+                  {selectedCategory !== "all" && (
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                      {selectedCategory}
+                    </span>
+                  )}
+                </>
+              )}
+            </p>
           </div>
         </div>
 

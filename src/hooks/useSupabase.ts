@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { useProfiles } from './useProfiles';
 import { useProducts } from './useProducts';
@@ -17,7 +18,8 @@ export const useSupabase = () => {
     return uploadImage(file, user);
   };
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     user,
     session,
     loading,
@@ -39,5 +41,25 @@ export const useSupabase = () => {
     isAdmin,
     getAllUserRoles,
     updateUserRole,
-  };
+  }), [
+    user,
+    session,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    getProfile,
+    updateProfile,
+    getProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    sendSwapRequest,
+    getSwapRequests,
+    updateSwapRequest,
+    userRole,
+    isAdmin,
+    getAllUserRoles,
+    updateUserRole,
+  ]);
 };

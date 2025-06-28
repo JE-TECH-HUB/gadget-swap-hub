@@ -1,4 +1,5 @@
 
+import { useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
@@ -17,7 +18,7 @@ interface Product {
 }
 
 export const useProducts = (user: User | null) => {
-  const getProducts = async (): Promise<Product[]> => {
+  const getProducts = useCallback(async (): Promise<Product[]> => {
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -32,9 +33,9 @@ export const useProducts = (user: User | null) => {
       ...product,
       status: product.status as "available" | "sold" | "swapped"
     }));
-  };
+  }, []);
 
-  const addProduct = async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'owner_id'>): Promise<Product | null> => {
+  const addProduct = useCallback(async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'owner_id'>): Promise<Product | null> => {
     if (!user) return null;
     
     const { data, error } = await supabase
@@ -52,9 +53,9 @@ export const useProducts = (user: User | null) => {
       ...data,
       status: data.status as "available" | "sold" | "swapped"
     };
-  };
+  }, [user]);
 
-  const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product | null> => {
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>): Promise<Product | null> => {
     if (!user) return null;
     
     const { data, error } = await supabase
@@ -74,9 +75,9 @@ export const useProducts = (user: User | null) => {
       ...data,
       status: data.status as "available" | "sold" | "swapped"
     };
-  };
+  }, [user]);
 
-  const deleteProduct = async (id: string): Promise<boolean> => {
+  const deleteProduct = useCallback(async (id: string): Promise<boolean> => {
     if (!user) return false;
     
     const { error } = await supabase
@@ -91,12 +92,12 @@ export const useProducts = (user: User | null) => {
     }
     
     return true;
-  };
+  }, [user]);
 
-  return {
+  return useMemo(() => ({
     getProducts,
     addProduct,
     updateProduct,
     deleteProduct,
-  };
+  }), [getProducts, addProduct, updateProduct, deleteProduct]);
 };

@@ -1,9 +1,9 @@
-
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, ShoppingCart, MessageSquare, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BuySwapDialog } from "./BuySwapDialog";
 
 interface Product {
   id: string;
@@ -121,33 +121,33 @@ export const ProductCard = ({ product, isLoggedIn }: ProductCardProps) => {
       <CardFooter className="p-4 pt-0 flex gap-2">
         {isLoggedIn ? (
           <>
-            <Button 
-              size="sm" 
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              disabled={product.status !== "available"}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Add to cart logic
-              }}
-            >
-              <ShoppingCart className="h-3 w-3 mr-1" />
-              Buy
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1"
-              disabled={product.status !== "available"}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Open swap dialog logic
-              }}
-            >
-              <MessageSquare className="h-3 w-3 mr-1" />
-              Swap
-            </Button>
+            <BuySwapDialog
+              product={product}
+              trigger={
+                <Button 
+                  size="sm" 
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={product.status !== "available"}
+                >
+                  <ShoppingCart className="h-3 w-3 mr-1" />
+                  Buy
+                </Button>
+              }
+            />
+            <BuySwapDialog
+              product={product}
+              trigger={
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  disabled={product.status !== "available"}
+                >
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  Swap
+                </Button>
+              }
+            />
           </>
         ) : (
           <Link to="/auth" className="w-full">

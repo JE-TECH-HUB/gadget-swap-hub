@@ -13,6 +13,7 @@ import { toast } from "sonner";
 interface AddProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onProductAdded?: () => void;
 }
 
 const categories = [
@@ -23,7 +24,7 @@ const categories = [
   { value: "accessories", label: "Accessories" }
 ];
 
-export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) => {
+export const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDialogProps) => {
   const { user, addProduct, uploadImage } = useSupabase();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -77,7 +78,6 @@ export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) 
       
       if (newProduct) {
         toast.success("Product added successfully!");
-        onOpenChange(false);
         // Reset form
         setFormData({
           name: "",
@@ -87,8 +87,7 @@ export const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) 
           location: "",
           image: null
         });
-        // Refresh the page to show new product
-        window.location.reload();
+        onProductAdded?.();
       } else {
         toast.error("Failed to add product");
       }

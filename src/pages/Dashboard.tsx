@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [myProducts, setMyProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [stats, setStats] = useState({
     totalListings: 0,
     activeSales: 0,
@@ -84,6 +85,11 @@ const Dashboard = () => {
       toast.success(`Product marked as ${newStatus}`);
       fetchDashboardData();
     }
+  };
+
+  const handleProductAdded = async () => {
+    await fetchDashboardData();
+    setShowAddDialog(false);
   };
 
   const formatPrice = (price: number) => {
@@ -165,12 +171,13 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {user.email}</p>
           </div>
-          <AddProductDialog onProductAdded={fetchDashboardData}>
-            <Button className="bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Product
-            </Button>
-          </AddProductDialog>
+          <Button 
+            className="bg-green-600 hover:bg-green-700"
+            onClick={() => setShowAddDialog(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Product
+          </Button>
         </div>
 
         {loading ? (
@@ -242,9 +249,9 @@ const Dashboard = () => {
                       <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No products yet</h3>
                       <p className="text-muted-foreground mb-4">Start selling by adding your first product</p>
-                      <AddProductDialog onProductAdded={fetchDashboardData}>
-                        <Button>Add Your First Product</Button>
-                      </AddProductDialog>
+                      <Button onClick={() => setShowAddDialog(true)}>
+                        Add Your First Product
+                      </Button>
                     </CardContent>
                   </Card>
                 ) : (
@@ -378,6 +385,12 @@ const Dashboard = () => {
           </>
         )}
       </div>
+
+      <AddProductDialog 
+        open={showAddDialog} 
+        onOpenChange={setShowAddDialog}
+        onProductAdded={handleProductAdded}
+      />
 
       <Footer />
     </div>
